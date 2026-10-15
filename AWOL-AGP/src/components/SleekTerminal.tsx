@@ -38,9 +38,33 @@ export function SleekTerminal({
   });
 
   const [input, setInput] = useState("");
+  const [hasTypedFirstPrompt, setHasTypedFirstPrompt] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const streamContainerRef = useRef<HTMLDivElement | null>(null);
   const terminalRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        if (localStorage.getItem("awol_has_typed_first_prompt") === "true") {
+          setHasTypedFirstPrompt(true);
+        }
+      } catch (e) {
+        // ignore localStorage access issues
+      }
+    }
+  }, []);
+
+  const markPromptTyped = () => {
+    setHasTypedFirstPrompt(true);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("awol_has_typed_first_prompt", "true");
+      } catch (e) {
+        // ignore localStorage access issues
+      }
+    }
+  };
 
   useEffect(() => {
     if (streamContainerRef.current) {
@@ -74,6 +98,7 @@ export function SleekTerminal({
     };
 
     setMessages((prev) => [...prev, userMsg]);
+    markPromptTyped();
     if (!textToSend) setInput("");
     setIsTyping(true);
 
@@ -242,9 +267,14 @@ export function SleekTerminal({
             <input
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                if (!hasTypedFirstPrompt && e.target.value.length > 0) {
+                  markPromptTyped();
+                }
+                setInput(e.target.value);
+              }}
               onKeyDown={handleKeyDown}
-              placeholder="WHAT IS YOUR HVAC ISSUE"
+              placeholder={!hasTypedFirstPrompt && messages.filter((m) => m.sender === "user").length === 0 ? "WHAT IS YOUR HVAC ISSUE" : ""}
               className="flex-1 bg-transparent text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-hidden py-1.5"
             />
             <button
