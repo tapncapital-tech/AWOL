@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { RotateCw, Maximize2, ExternalLink } from "lucide-react";
+import { RotateCw } from "lucide-react";
 import { RepProfile } from "@/lib/repRoster";
 
 interface SyncGMPreviewProps {
@@ -9,8 +9,9 @@ interface SyncGMPreviewProps {
 }
 
 export function SyncGMPreview({ rep }: SyncGMPreviewProps) {
-  const syncgmLiveUrl =
+  const baseUrl =
     process.env.NEXT_PUBLIC_SYNCGM_URL || "https://syncgm-wjhwxrjbeq-uc.a.run.app";
+  const syncgmLiveUrl = baseUrl.includes("?") ? `${baseUrl}&embed=true` : `${baseUrl}?embed=true`;
 
   const [iframeKey, setIframeKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,16 +48,6 @@ export function SyncGMPreview({ rep }: SyncGMPreviewProps) {
             >
               <RotateCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#14e7c7]" />
             </button>
-            <a
-              href={syncgmLiveUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-xl bg-[#0c2340] hover:bg-[#14e7c7] hover:text-[#071322] text-xs sm:text-sm font-black text-[#14e7c7] border border-cyan-500/40 shadow-[0_0_15px_rgba(20,231,199,0.2)] transition-all cursor-pointer whitespace-nowrap"
-              title="Run SyncGM in it's Own Tab"
-            >
-              <span>Run SyncGM in it&apos;s Own Tab</span>
-              <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-            </a>
           </div>
         </div>
 
