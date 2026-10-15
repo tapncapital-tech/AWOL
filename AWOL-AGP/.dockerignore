@@ -1,0 +1,8 @@
+node_modules
+.next
+.git
+.tmp
+instructions
+execution
+.DS_Store
+*.log

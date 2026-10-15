@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Next.js and build output
+.next/
+*/.next/
+out/
+*/out/
+dist/
+*/dist/
+build/
+*/build/
+
+# Caches and temporary directories
+.tmp/
+*/.tmp/
+.cache/
+*/.cache/
+*.log
+
+# Sensitive credentials, secrets and environment variables
+.credentials/
+*/.credentials/
+*.pem
+*.key
+.env*
+!.env.example
+
+# OS generated files
+.DS_Store
+*/.DS_Store
+Thumbs.db

@@ -1,0 +1,119 @@
+================================================================================
+PROJECT OVERVIEW: AGENTWORKFORCE.ONLINE
+================================================================================
+Target Audience for this Document: Development & QA / Testing Team
+Last Updated: October 2026
+Status: Pre-Implementation / Architecture Phase
+
+--------------------------------------------------------------------------------
+1. EXECUTIVE SUMMARY & MISSION
+--------------------------------------------------------------------------------
+Agentworkforce.online is a high-performance demonstration and sales conversion
+platform. Its primary commercial objective is to convince businesses to automate
+costly, manual operations by showcasing live, intelligent AI workers that 
+connect directly to real-world business tools.
+
+The primary conversion goal of the entire site is simple:
+Qualify prospective clients, understand their business bottlenecks, capture 
+their information, and automatically book a consultation on our central Google 
+Calendar.
+
+Beyond booking calls, the site acts as an interactive technical proof-of-concept
+showing that our AI agents:
+  - Do not live in isolated silos.
+  - Can switch fluidly across channels (chat, voice avatar, phone).
+  - Can integrate with databases, calendars, CRMs, and internal enterprise APIs.
+  - Are built on an enterprise-ready, multi-tenant foundation from Day 1.
+
+--------------------------------------------------------------------------------
+2. WHAT PROBLEMS ARE WE SOLVING FOR CLIENTS?
+--------------------------------------------------------------------------------
+Our marketing copy and bot qualification flow address five distinct operational
+headaches:
+  1. Repetitive Labor: Spending excessive hours weekly on manual tasks.
+  2. Lead Leakage: Losing prospective deals because nobody follows up fast enough.
+  3. Manual Monitoring: Human workers manually tracking operational statuses.
+  4. Bloated Payroll: Paying employees to handle work that AI can run 24/7.
+  5. Scattered Information: Business data fractured across incompatible tools.
+
+--------------------------------------------------------------------------------
+3. CORE SYSTEM FEATURES TO TEST
+--------------------------------------------------------------------------------
+
+A. Tri-Modal AI Worker ("awol_autobot")
+Visitors should be able to interact with the exact same AI assistant across 
+three distinct interfaces without losing context:
+  1. Website Text Chat: Fast, interactive text conversation.
+  2. Gemini Live Interactive Avatar: Voice-driven, low-latency audio stream
+     with a sleek, real-time audio-reactive visualizer (built on pure Web Audio
+     API for zero-latency response).
+  3. Telephony / Voice AI: Real-time phone call support using Google Cloud 
+     Contact Center AI (CCAI) audio bridging.
+
+B. Cross-Channel Session Continuity (Google ADK + PIN Handoff)
+Visitors should never have to repeat themselves:
+  - If a user begins on the web (chat or avatar) and wants to continue over the
+    phone, the web app generates a temporary 4-digit PIN.
+  - When the user calls our phone number, the voice system prompts for the PIN.
+  - Google ADK immediately links the phone call to the existing web session,
+    retaining all previous conversation history, qualification notes, and state.
+
+C. Personalized Rep / Developer Customization (Dynamic Routing)
+The platform allows 3 or 4 team members (sales reps, developers, AI engineers)
+to operate behind the scenes while presenting a unified, single point of contact
+to the client:
+  - Custom URLs (e.g., agentworkforce.online/alex or agentworkforce.online?rep=alex).
+  - The front end dynamically displays that specific rep's name, title, email,
+    and direct contact details.
+  - Rep profile data is pulled dynamically from Firestore.
+
+D. Unified Calendar Booking
+  - Regardless of which rep URL was visited, all scheduled consultations dispatch
+    into ONE central Google Calendar.
+  - The event payload includes the assigned rep's metadata, lead responses, and
+    session qualification notes.
+
+E. Multi-Tenant Architecture from Day One
+  - While we are the initial "Tenant 0", the backend data model and agent 
+    orchestration layers are strictly partitioned by Tenant ID.
+  - This guarantees that client deployments or future developer subscriptions
+    can be launched on the same core infrastructure without rewriting backend code.
+
+--------------------------------------------------------------------------------
+4. HIGH-LEVEL TECHNOLOGY STACK
+--------------------------------------------------------------------------------
+  - Front-End / Web App: Next.js (App Router), React, Tailwind CSS
+  - Data & Auth: Firebase (Firestore, Firebase Storage, Firebase Hosting / Functions)
+  - Core Intelligence: Google Gemini Models & Gemini Live API
+  - Agent Orchestration: Google Agent Development Kit (ADK)
+  - Telephony Bridge: Google Cloud Contact Center AI (CCAI)
+  - Scheduling / Integrations: Google Calendar API, Google Workspace
+  - Visualizer: Web Audio API (real-time frequency analyzer driving canvas visualizer)
+
+--------------------------------------------------------------------------------
+5. COW-ORKER TESTING CHECKLIST (WHAT WE WILL VALIDATE)
+--------------------------------------------------------------------------------
+When running end-to-end tests, your testing colleague will focus on:
+
+[ ] Dynamic Routing:
+    - Visit "/" vs. "/[rep_name]".
+    - Verify rep-specific headers, bio, email, and phone update properly.
+
+[ ] Conversation & Lead Capture:
+    - Chat with `awol_autobot` to ensure it identifies business problems, asks
+      qualifying questions, and requests contact info.
+
+[ ] Calendar Booking Execution:
+    - Complete booking flow and verify the event appears on the central Google
+      Calendar with accurate rep tags and lead summaries.
+
+[ ] Session PIN & Phone Handoff:
+    - Start a conversation on web chat.
+    - Note the generated 4-digit PIN.
+    - Call the telephony number, enter the 4-digit PIN, and verify the bot
+      greets you by name and continues where the web chat left off.
+
+[ ] Audio-Reactive Visualizer:
+    - Test microphone streaming latency and visual responsiveness on both
+      desktop and mobile browsers.
+================================================================================

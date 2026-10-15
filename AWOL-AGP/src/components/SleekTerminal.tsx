@@ -1,0 +1,263 @@
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
+import { Send, Zap, ShieldCheck } from "lucide-react";
+import { RepProfile } from "@/lib/repRoster";
+
+interface SleekTerminalProps {
+  rep: RepProfile;
+  onOpenTelephonyModal: () => void;
+  selectedScenarioPrompt?: string;
+  onClearScenarioPrompt?: () => void;
+}
+
+interface Message {
+  sender: "user" | "bot" | "system";
+  text: string;
+  timestamp: string;
+}
+
+export function SleekTerminal({
+  rep,
+  onOpenTelephonyModal,
+  selectedScenarioPrompt,
+  onClearScenarioPrompt,
+}: SleekTerminalProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  const [sessionId] = useState(() => {
+    if (typeof window !== "undefined") {
+      let saved = localStorage.getItem("awol_chat_session_id");
+      if (!saved) {
+        saved = "session-" + Math.random().toString(36).substring(2, 11) + "-" + Date.now();
+        localStorage.setItem("awol_chat_session_id", saved);
+      }
+      return saved;
+    }
+    return "session-" + Date.now();
+  });
+
+  const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const streamContainerRef = useRef<HTMLDivElement | null>(null);
+  const terminalRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (streamContainerRef.current) {
+      streamContainerRef.current.scrollTo({
+        top: streamContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [messages, isTyping]);
+
+  useEffect(() => {
+    if (selectedScenarioPrompt) {
+      handleSend(selectedScenarioPrompt);
+      if (onClearScenarioPrompt) {
+        onClearScenarioPrompt();
+      }
+    }
+  }, [selectedScenarioPrompt]);
+
+  const handleSend = async (textToSend?: string) => {
+    const query = (textToSend || input).trim();
+    if (!query) return;
+
+    terminalRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const userMsg: Message = {
+      sender: "user",
+      text: query,
+      timestamp: time,
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    if (!textToSend) setInput("");
+    setIsTyping(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: query,
+          sessionId,
+          rep,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.reply) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: "bot",
+            text: data.reply,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+      } else {
+        throw new Error(data.error || "Failed to reach live agent");
+      }
+    } catch {
+      // Local fallback for offline connectivity
+      let botReply = "";
+      const lower = query.toLowerCase();
+
+      if (lower.includes("ac") || lower.includes("breakdown") || lower.includes("chiller")) {
+        botReply = `[DISPATCH PRIORITY 1: AC FAILURE] Emergency commercial HVAC tech paged. Standby window: 28 mins.\nConsultation credited to ${rep.rep_name} (${rep.rep_number}). Address qualified. Would you like technician SMS tracking?`;
+      } else if (lower.includes("furnace") || lower.includes("no-heat") || lower.includes("boiler") || lower.includes("heat")) {
+        botReply = `[DISPATCH PRIORITY 1: HEATING OUTAGE] Midnight emergency heating call scheduled. Diagnostics tech en route with ignition/burner parts.\nPriority account created under ${rep.rep_name}. Dispatch receipt sent to ${rep.rep_email}.`;
+      } else if (lower.includes("compressor") || lower.includes("rooftop") || lower.includes("rtu")) {
+        botReply = `[DISPATCH PRIORITY 1: ROOFTOP RTU FAILURE] Commercial rooftop package unit crew alerted. Crane & replacement motor standby engaged.\nAssigned to Lead Architect ${rep.rep_name}.`;
+      } else if (lower.includes("server") || lower.includes("cooling") || lower.includes("data center")) {
+        botReply = `[DISPATCH PRIORITY 1: MISSION-CRITICAL COOLING] Server room environmental alarm acknowledged. Precision cooling specialist dispatched immediately (ETA 22 mins).\nAlert sent to ${rep.rep_name}.`;
+      } else if (lower.includes("refrigerant") || lower.includes("heat pump") || lower.includes("freon")) {
+        botReply = `[DISPATCH PRIORITY 1: HEAT PUMP / REFRIGERANT LEAK] EPA-certified HVAC technician dispatched with leak detector & reclaim equipment.\nAccount logged under ${rep.rep_name} (${rep.rep_number}).`;
+      } else {
+        botReply = `HVAC Dispatch Received: "${query}". On-call technician notified. Consultation attributed to ${rep.rep_name} (${rep.rep_email}). Please confirm your service address or call ${rep.rep_number}.`;
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: botReply,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div ref={terminalRef} className="w-full max-w-4xl mx-auto px-0 sm:px-1">
+      {/* Sleek Deep Navy Container with Cyan Ambient Glow */}
+      <div className="rounded-3xl border border-cyan-500/30 bg-[#071322] shadow-[0_20px_50px_rgba(2,132,199,0.15)] overflow-hidden font-sans w-full">
+        {/* Sleek Top Header Bar */}
+        <div className="flex items-center justify-between gap-2 bg-[#0b1c33]/90 px-4 sm:px-6 py-3 border-b border-cyan-500/20 text-xs sm:text-sm backdrop-blur-md">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <span className="flex h-2.5 w-2.5 rounded-full bg-[#14e7c7] shadow-[0_0_10px_#14e7c7]" />
+            <span className="text-white font-bold tracking-wide text-xs sm:text-sm truncate">
+              HVAC AUTOPILOT DISPATCH
+            </span>
+            <span className="bg-[#14e7c7]/15 text-[#14e7c7] border border-[#14e7c7]/30 text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 flex-shrink-0">
+              <Zap className="h-3 w-3" />
+              <span>LIVE SYSTEM</span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <button
+              onClick={onOpenTelephonyModal}
+              className="border border-cyan-500/30 hover:border-[#14e7c7] bg-slate-900/60 text-[#14e7c7] hover:bg-[#14e7c7]/10 text-[11px] sm:text-xs px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap"
+            >
+              [ 4-DIGIT PIN ]
+            </button>
+            <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-300 whitespace-nowrap">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#14e7c7]" />
+              <span>CONNECTED</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Message Stream Area - Featuring Robot Eye Greenish-Blue (#14e7c7) for Bot Output */}
+        <div
+          ref={streamContainerRef}
+          className="relative p-4 sm:p-6 h-[360px] sm:h-[430px] min-h-[290px] sm:min-h-[390px] overflow-y-auto space-y-4 text-left overscroll-contain bg-gradient-to-b from-[#071322] to-[#0a192f]"
+          style={{ overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
+        >
+          {messages.length === 0 && (
+            <div className="h-full min-h-[200px] flex flex-col items-center justify-center text-center p-4 text-slate-400">
+              <div className="h-12 w-12 rounded-2xl bg-cyan-950/60 border border-[#14e7c7]/30 flex items-center justify-center text-[#14e7c7] mb-3 shadow-[0_0_20px_rgba(20,231,199,0.2)]">
+                <Zap className="h-6 w-6" />
+              </div>
+              <p className="text-white font-semibold text-base sm:text-lg">
+                Ready for Live HVAC Emergency Dispatch
+              </p>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-md">
+                Click one of the scenario buttons above or type an emergency below to test instantaneous call qualification &amp; on-call booking.
+              </p>
+            </div>
+          )}
+
+          {messages.map((m, idx) => (
+            <div
+              key={idx}
+              className={`flex flex-col ${
+                m.sender === "user" ? "items-end" : "items-start"
+              }`}
+            >
+              {m.sender === "user" ? (
+                /* Sleek User Bubble: Theme Midnight Navy */
+                <div className="max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-xs bg-[#0c2340] border border-cyan-500/40 text-white px-4 py-2.5 text-sm sm:text-lg font-medium shadow-md">
+                  <p className="whitespace-pre-wrap leading-relaxed break-words">{m.text}</p>
+                  <span className="text-[10px] text-sky-100 mt-1 block text-right font-mono">
+                    {m.timestamp}
+                  </span>
+                </div>
+              ) : (
+                /* Sleek Bot Message - Glow Greenish-Blue (#14e7c7 Robot Eyes) Text */
+                <div className="max-w-[88%] sm:max-w-[80%] rounded-2xl rounded-tl-sm bg-[#0d223f]/90 border border-[#14e7c7]/30 px-4 py-3 shadow-[0_4px_20px_rgba(20,231,199,0.08)]">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="h-2 w-2 rounded-full bg-[#14e7c7] shadow-[0_0_8px_#14e7c7]" />
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#14e7c7]">
+                      AI Auto-Dispatcher
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono ml-auto">
+                      {m.timestamp}
+                    </span>
+                  </div>
+                  {/* Robot-Eye Glowing Greenish-Blue Text */}
+                  <p className="text-xs sm:text-sm text-[#14e7c7] font-mono leading-relaxed whitespace-pre-wrap">
+                    {m.text}
+                  </p>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {isTyping && (
+            <div className="flex items-center gap-2 text-[#14e7c7] text-xs font-mono py-1 px-2">
+              <span className="h-2 w-2 rounded-full bg-[#14e7c7] animate-ping" />
+              <span>Qualifying emergency &amp; routing to on-call tech...</span>
+            </div>
+          )}
+        </div>
+
+        {/* Input Bar */}
+        <div className="p-3 sm:p-4 bg-[#09182d] border-t border-cyan-500/20">
+          <div className="flex items-center gap-2 rounded-2xl bg-[#06101d] border border-cyan-500/25 px-3 py-1.5 focus-within:border-[#14e7c7] focus-within:ring-2 focus-within:ring-[#14e7c7]/20 transition-all">
+            <span className="text-[#14e7c7] font-bold text-sm select-none pl-1">&gt;</span>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="WHAT IS YOUR HVAC ISSUE"
+              className="flex-1 bg-transparent text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-hidden py-1.5"
+            />
+            <button
+              onClick={() => handleSend()}
+              disabled={!input.trim()}
+              className="rounded-xl bg-[#14e7c7] hover:bg-[#20f1d0] disabled:opacity-30 disabled:hover:bg-[#14e7c7] text-[#05192d] px-3.5 py-1.5 font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(20,231,199,0.3)] cursor-pointer"
+            >
+              <span>SEND</span>
+              <Send className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
